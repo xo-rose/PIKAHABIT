@@ -3,13 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#101114" />
+    <meta name="theme-color" content="#100f15" />
     <meta name="description" content="A gentle reminder for the little things you keep forgetting." />
     <title>PikaHabit — remember the little things</title>
     <link rel="icon" href="pk.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Nunito:wght@200..1000&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
     <script src="script.js" defer></script>
   </head>
@@ -23,11 +23,11 @@
     <main id="main">
       <section class="hero page-shell" id="home">
         <div class="hero-copy">
-          <p class="eyebrow"><span class="status-dot"></span> A LITTLE REMINDER BUDDY</p>
-          <h1>Remember the little things.<br /><span>Gently.</span></h1>
-          <p class="hero-description">Study a little. Drink some water. Do the thing you meant to do. PikaHabit gives you a friendly nudge, without turning your day into a project.</p>
-          <a class="button button-primary" href="#add-reminder">Add a reminder <span aria-hidden="true">→</span></a>
-          <p class="hero-note"><span aria-hidden="true">✦</span> One small nudge at a time.</p>
+          <p class="eyebrow"><span class="status-dot"></span> YOUR LITTLE REMINDER BUDDY</p>
+          <h1>Little things,<br /><span>handled gently.</span></h1>
+          <p class="hero-description">A softer way to remember the things you mean to do. Add a tiny reminder, then let PikaHabit keep it in mind for you.</p>
+          <a class="button button-primary" href="#add-reminder">Make a reminder <span aria-hidden="true">↗</span></a>
+          <p class="hero-note"><span aria-hidden="true">✦</span> No pressure. Just a little nudge.</p>
         </div>
         <div class="hero-art" aria-label="Pikachu cheering you on">
           <div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div>
@@ -38,10 +38,10 @@
       </section>
 
       <section class="page-shell reminder-section" id="reminders" aria-labelledby="reminders-title">
-        <div class="section-heading"><div><p class="eyebrow">KEEP IT SIMPLE</p><h2 id="reminders-title">Your reminders</h2></div><p id="reminderCount" class="reminder-count">Nothing to remember yet</p></div>
+        <div class="section-heading"><div><p class="eyebrow">A LITTLE SPACE FOR YOU</p><h2 id="reminders-title">Today, gently</h2></div><p id="reminderCount" class="reminder-count">Nothing to remember yet</p></div>
         <div class="reminder-layout">
           <section class="form-card" id="add-reminder" aria-labelledby="form-title">
-            <p class="eyebrow">JUST ONE QUICK THING</p><h3 id="form-title">What do you want to remember?</h3>
+            <p class="eyebrow">START WITH ONE SMALL THING</p><h3 id="form-title">What would you like to remember?</h3>
             <form id="reminderForm">
               <label for="reminderTitle">Reminder</label>
               <input id="reminderTitle" name="reminderTitle" type="text" maxlength="72" placeholder="e.g. Review biology notes" required />
