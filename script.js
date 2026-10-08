@@ -1,709 +1,308 @@
-// ===============================
-// LOADING SCREEN
-// ===============================
+const STORAGE_KEY = "pikaReminders";
 
-window.addEventListener("load", function () {
+const elements = {
+  form: document.getElementById("reminderForm"),
+  title: document.getElementById("reminderTitle"),
+  repeat: document.getElementById("reminderRepeat"),
+  date: document.getElementById("reminderDate"),
+  time: document.getElementById("reminderTime"),
+  dateLabel: document.getElementById("dateLabel"),
+  scheduleFields: document.getElementById("scheduleFields"),
+  scheduleHint: document.getElementById("scheduleHint"),
+  reminderList: document.getElementById("reminderList"),
+  emptyState: document.getElementById("emptyState"),
+  reminderCount: document.getElementById("reminderCount"),
+  reminderBadge: document.getElementById("reminderBadge"),
+  enableNotifications: document.getElementById("enableNotifications"),
+  notificationStatus: document.getElementById("notificationStatus"),
+  toast: document.getElementById("toast"),
+};
 
-    const loader = document.getElementById("loader");
+const repeatIntervals = { "2m": 2 * 60_000, "30m": 30 * 60_000, "1h": 60 * 60_000 };
+let reminders = loadReminders();
+let toastTimer;
 
-    setTimeout(() => {
+function loadReminders() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    if (!Array.isArray(saved)) return [];
+    return saved
+      .filter((item) => item && typeof item.title === "string" && ["once", "2m", "30m", "1h", "daily"].includes(item.repeat))
+      .map((item) => ({
+        id: String(item.id ?? `${Date.now()}-${Math.random()}`),
+        title: item.title.trim().slice(0, 72),
+        repeat: item.repeat,
+        nextAt: Number(item.nextAt) || null,
+        dailyTime: /^\d{2}:\d{2}$/.test(item.dailyTime || "")
+          ? item.dailyTime
+          : item.nextAt
+            ? new Date(item.nextAt).toTimeString().slice(0, 5)
+            : "09:00",
+        notified: Boolean(item.notified),
+        snoozed: Boolean(item.snoozed),
+      }));
+  } catch {
+    return [];
+  }
+}
 
-        loader.classList.add("opacity-0");
+function saveReminders() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(reminders));
+}
 
-        setTimeout(() => {
+function localDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
-            loader.classList.add("hidden");
+function nextDailyTime(dateValue, timeValue, from = new Date()) {
+  const candidate = new Date(`${dateValue}T${timeValue}:00`);
+  if (candidate > from) return candidate.getTime();
+  candidate.setDate(candidate.getDate() + 1);
+  return candidate.getTime();
+}
 
-        }, 700);
+function nextDailyOccurrence(timeValue, from = new Date()) {
+  const candidate = new Date(from);
+  const [hour, minute] = timeValue.split(":").map(Number);
+  candidate.setHours(hour, minute, 0, 0);
+  if (candidate <= from) candidate.setDate(candidate.getDate() + 1);
+  return candidate.getTime();
+}
 
-    }, 1000);
+function showToast(message) {
+  elements.toast.textContent = message;
+  elements.toast.classList.add("is-visible");
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => elements.toast.classList.remove("is-visible"), 2300);
+}
 
-});
+function repeatLabel(repeat) {
+  return ({ once: "Just once", "2m": "Every 2 minutes", "30m": "Every 30 minutes", "1h": "Every hour", daily: "Every day" })[repeat];
+}
 
+function formatNextTime(reminder) {
+  if (reminder.notified && reminder.repeat === "once") return "Nudge sent · waiting for you";
+  if (!reminder.nextAt) return "Ready when you are";
+  const next = new Date(reminder.nextAt);
+  if (next.getTime() <= Date.now()) return "Nudge is ready";
+  const date = localDateKey(next) === localDateKey() ? "Today" : localDateKey(next) === localDateKey(new Date(Date.now() + 86_400_000)) ? "Tomorrow" : new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(next);
+  const time = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(next);
+  return `${date} · ${time}`;
+}
 
-// ===============================
-// LOCAL STORAGE
-// ===============================
+function reminderIcon(title) {
+  if (/water|drink|sip/i.test(title)) return "💧";
+  if (/study|read|exam|homework|class/i.test(title)) return "📚";
+  return "⚡";
+}
 
-let habits = JSON.parse(localStorage.getItem("habits")) || [];
+function makeAction(label, action, id, className = "") {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = `reminder-action ${className}`.trim();
+  button.dataset.action = action;
+  button.dataset.id = id;
+  button.textContent = label;
+  return button;
+}
 
-// ===============================
-// ELEMENTS
-// ===============================
+function render() {
+  const sorted = [...reminders].sort((a, b) => (a.nextAt || Number.MAX_SAFE_INTEGER) - (b.nextAt || Number.MAX_SAFE_INTEGER));
+  elements.reminderList.replaceChildren();
 
-    const modal = document.getElementById("modal");
+  for (const reminder of sorted) {
+    const item = document.createElement("article");
+    item.className = "reminder-item";
+    const icon = document.createElement("span");
+    icon.className = "reminder-symbol";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = reminderIcon(reminder.title);
+    const copy = document.createElement("div");
+    copy.className = "reminder-item-copy";
+    const title = document.createElement("h3");
+    title.className = "reminder-title";
+    title.textContent = reminder.title;
+    const time = document.createElement("p");
+    time.className = "reminder-time";
+    time.textContent = formatNextTime(reminder);
+    const frequency = document.createElement("p");
+    frequency.className = "reminder-repeat";
+    frequency.textContent = repeatLabel(reminder.repeat);
+    copy.append(title, time, frequency);
 
-    const openModal = document.getElementById("openModal");
+    const actions = document.createElement("div");
+    actions.className = "reminder-actions";
+    actions.append(makeAction("Done", "done", reminder.id, "done"));
+    actions.append(makeAction("Snooze 10m", "snooze", reminder.id));
+    if (reminder.repeat !== "once") actions.append(makeAction("Skip this one", "skip", reminder.id));
+    actions.append(makeAction("×", "delete", reminder.id, "remove"));
+    item.append(icon, copy, actions);
+    elements.reminderList.append(item);
+  }
 
-    const closeModal = document.getElementById("closeModal");
+  const count = reminders.length;
+  elements.emptyState.hidden = count > 0;
+  elements.reminderCount.textContent = count ? `${count} reminder${count === 1 ? "" : "s"} to keep in mind` : "Nothing to remember yet";
+  elements.reminderBadge.textContent = String(count);
+}
 
-    const habitForm = document.getElementById("habitForm");
+function updateScheduleFields() {
+  const repeat = elements.repeat.value;
+  const needsTime = repeat === "once" || repeat === "daily";
+  const needsDate = repeat === "once" || repeat === "daily";
+  elements.scheduleFields.hidden = !needsTime && !needsDate;
+  elements.date.hidden = !needsDate;
+  elements.time.hidden = !needsTime;
+  elements.dateLabel.hidden = !needsDate;
+  document.querySelector(".time-label").hidden = !needsTime;
+  elements.date.required = needsDate;
+  elements.time.required = needsTime;
+  elements.dateLabel.textContent = repeat === "daily" ? "Start date" : "Date";
 
-    const habitContainer = document.getElementById("habitContainer");
+  const hints = {
+    once: "For example: study biology once today at 7:00 pm.",
+    "2m": "Your first nudge will arrive in 2 minutes. Great for trying it out.",
+    "30m": "Your first nudge will arrive in 30 minutes.",
+    "1h": "Your first nudge will arrive in 1 hour.",
+    daily: "For example: drink water every day at 10:00 am.",
+  };
+  elements.scheduleHint.textContent = hints[repeat];
+}
 
-    const emptyState = document.getElementById("emptyState");
+function updateNotificationStatus() {
+  if (!("Notification" in window)) {
+    elements.enableNotifications.disabled = true;
+    elements.notificationStatus.textContent = "This browser does not support desktop notifications.";
+    return;
+  }
+  if (Notification.permission === "granted") {
+    elements.enableNotifications.textContent = "Reminders are on ✓";
+    elements.notificationStatus.textContent = "PikaHabit can nudge you while this page is open. Your device controls notification sounds.";
+  } else if (Notification.permission === "denied") {
+    elements.enableNotifications.textContent = "Notifications blocked";
+    elements.notificationStatus.textContent = "You can allow notifications for this site in your browser settings.";
+  } else {
+    elements.enableNotifications.textContent = "Enable reminders ↗";
+    elements.notificationStatus.textContent = "You’ll be asked before notifications are enabled.";
+  }
+}
 
+function notify(reminder) {
+  const notification = new Notification(reminder.title, { body: "A gentle nudge from PikaHabit.", icon: "pk.png", tag: `pikahabit-${reminder.id}` });
+  notification.addEventListener("click", () => {
+    window.focus();
+    window.location.hash = "reminders";
+    notification.close();
+  });
+}
 
-// ===============================
-// OPEN MODAL
-// ===============================
-
-openModal.addEventListener("click", function () {
-
-    modal.classList.remove("hidden");
-
-    modal.classList.add("flex");
-
-});
-
-
-// ===============================
-// CLOSE MODAL
-// ===============================
-
-closeModal.addEventListener("click", function () {
-
-    modal.classList.add("hidden");
-
-    modal.classList.remove("flex");
-
-});
-
-
-// ===============================
-// ADD NEW HABIT
-// ===============================
-
-habitForm.addEventListener("submit", function (event) {
-
-    event.preventDefault();
-
-      let name =
-        document.getElementById("habitName").value;
-
-    let icon =
-        document.getElementById("habitIcon").value;
-
-    const dailyTarget =
-        Number(document.getElementById("dailyTarget").value); 
-});   
-
-
-    // If the user selected "Other"
-
-    // if (icon === "other") {
-
-    //     name =
-    //         document.getElementById("customHabit").value;
-
-    //     icon =
-    //         document.getElementById("customIcon").value;
-
-    // }
-
-// ===============================
-// CUSTOM HABIT ELEMENTS
-// ===============================
-
-    const habitIcon = document.getElementById("habitIcon");
-
-    const customHabitContainer = document.getElementById("customHabitContainer");
-
-    const customHabit = document.getElementById("customHabit");
-
-    const customIcon =
-        document.getElementById("customIcon");
-
-// ===============================
-// CUSTOM HABIT OPTION
-// ===============================
-
-habitIcon.addEventListener("change", function () {
-
-    if (habitIcon.value === "other") {
-
-        customHabitContainer.classList.remove("hidden");
-
-        customHabit.required = true;
-
-        customIcon.required = true;
-
+function checkReminders() {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  const now = Date.now();
+  let changed = false;
+  for (const reminder of reminders) {
+    if (!reminder.nextAt || reminder.nextAt > now) continue;
+    notify(reminder);
+    changed = true;
+    if (reminder.repeat === "once") {
+      reminder.nextAt = null;
+      reminder.notified = true;
+    } else if (reminder.repeat === "daily") {
+      reminder.nextAt = nextDailyOccurrence(reminder.dailyTime, new Date(now));
+      reminder.snoozed = false;
     } else {
-
-        customHabitContainer.classList.add("hidden");
-
-        customHabit.required = false;
-
-        customIcon.required = false;
-
+      reminder.nextAt = now + repeatIntervals[reminder.repeat];
+      reminder.snoozed = false;
     }
+  }
+  if (changed) {
+    saveReminders();
+    render();
+  }
+}
 
+elements.repeat.addEventListener("change", updateScheduleFields);
+elements.form.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const title = elements.title.value.trim();
+  const repeat = elements.repeat.value;
+  if (!title) return;
+
+  let nextAt;
+  if (repeat === "once") {
+    nextAt = new Date(`${elements.date.value}T${elements.time.value}:00`).getTime();
+    if (nextAt <= Date.now()) {
+      showToast("Choose a time in the future.");
+      return;
+    }
+  } else if (repeat === "daily") {
+    nextAt = nextDailyTime(elements.date.value, elements.time.value);
+  } else {
+    nextAt = Date.now() + repeatIntervals[repeat];
+  }
+
+  reminders.push({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    title: title.slice(0, 72),
+    repeat,
+    nextAt,
+    dailyTime: repeat === "daily" ? elements.time.value : null,
+    notified: false,
+    snoozed: false,
+  });
+  saveReminders();
+  render();
+  elements.form.reset();
+  elements.date.value = localDateKey();
+  updateScheduleFields();
+  showToast("Reminder added. You can relax; PikaHabit remembers.");
 });
 
-    // ===============================
-// ADD NEW HABIT
-// ===============================
+elements.reminderList.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-action]");
+  if (!button) return;
+  const reminder = reminders.find((item) => item.id === button.dataset.id);
+  if (!reminder) return;
 
-habitForm.addEventListener("submit", function (event) {
+  if (button.dataset.action === "delete" || (button.dataset.action === "done" && reminder.repeat === "once")) {
+    reminders = reminders.filter((item) => item.id !== reminder.id);
+    showToast(button.dataset.action === "done" ? "Nice. One less thing to remember." : "Reminder removed.");
+  } else if (button.dataset.action === "snooze") {
+    reminder.nextAt = Date.now() + 10 * 60_000;
+    reminder.notified = false;
+    reminder.snoozed = true;
+    showToast("Okay, I’ll nudge you in 10 minutes.");
+  } else if (button.dataset.action === "done" || button.dataset.action === "skip") {
+    reminder.nextAt = reminder.repeat === "daily"
+      ? nextDailyOccurrence(reminder.dailyTime, new Date(Math.max(Date.now(), reminder.nextAt || 0)))
+      : Date.now() + repeatIntervals[reminder.repeat];
+    reminder.notified = false;
+    reminder.snoozed = false;
+    showToast(button.dataset.action === "done" ? "Done for now. Your next nudge is set." : "Skipped. I’ll remind you next time.");
+  }
 
-    event.preventDefault();
-
-
-    let name =
-        document.getElementById("habitName").value.trim();
-
-    let icon =
-        habitIcon.value;
-
-
-    const dailyTarget =
-        Number(document.getElementById("dailyTarget").value);
-
-
-    // If the user selected "Other"
-
-    if (icon === "other") {
-
-        name = customHabit.value.trim();
-
-        icon = customIcon.value.trim();
-
-    }
-
-
-    // Prevent empty custom habits
-
-    if (name === "" || icon === "") {
-
-        alert("Please fill in all the habit details.");
-
-        return;
-
-    }
-
-
-    const newHabit = {
-
-        id: Date.now(),
-
-        name: name,
-
-        icon: icon,
-
-        dailyTarget: dailyTarget,
-
-        dailyProgress: {},
-
-        streak: 0,
-
-        bestStreak: 0,
-
-        lastCompletedDate: null
-       
-
-    };
-
-
-    habits.push(newHabit);
-
-
-    saveHabits();
-
-    displayHabits();
-
-
-    habitForm.reset();
-
-    customHabitContainer.classList.add("hidden");
-
-    modal.classList.add("hidden");
-
-    modal.classList.remove("flex");
-
+  saveReminders();
+  render();
 });
 
-
-
-// ===============================
-// DISPLAY HABITS
-// ===============================
-
-
-function displayHabits() {
-
-
-    habitContainer.innerHTML = "";
-
-
-    if (habits.length === 0) {
-
-        emptyState.classList.remove("hidden");
-
-    } else {
-
-        emptyState.classList.add("hidden");
-
-    }
-
-
-    habits.forEach(function (habit) {
-
-
-        const today = getToday();
-
-
-        // Get today's progress
-
-        const todayProgress =
-            habit.dailyProgress[today] || 0;
-
-
-        // Calculate percentage
-
-        const percentage =
-            Math.min(
-                Math.round(
-                    (todayProgress / habit.dailyTarget) * 100
-                ),
-                100
-            );
-
-
-        const card = document.createElement("div");
-
-
-        card.className =
-            `rounded-2xl border border-gray-800
-             bg-[#1c1c1c] p-6 transition duration-300
-             hover:-translate-y-2 hover:border-yellow-400`;
-
-
-        card.innerHTML = `
-
-            <!-- HABIT HEADER -->
-
-            <div class="flex items-center justify-between">
-
-
-                <div class="flex items-center gap-4">
-
-                    <div class="text-4xl">
-
-                        ${habit.icon}
-
-                    </div>
-
-
-                    <div>
-
-                        <h3 class="text-xl font-bold">
-
-                            ${habit.name}
-
-                        </h3>
-
-
-                        <p class="mt-1 text-sm text-gray-400">
-
-                            ${habit.streak} day streak 🔥
-
-                        </p>
-
-                    </div>
-
-                </div>
-
-
-                <button
-                    onclick="deleteHabit(${habit.id})"
-                    class="text-gray-500 transition
-                           hover:text-red-500">
-
-                    <i class="fa-solid fa-trash"></i>
-
-                </button>
-
-
-            </div>
-
-
-            <!-- PROGRESS -->
-
-            <div class="mt-6">
-
-
-                <div class="mb-2 flex justify-between">
-
-                    <span class="text-gray-400">
-
-                        Today's Progress
-
-                    </span>
-
-
-                    <span class="font-bold text-yellow-400">
-
-                        ${todayProgress} / ${habit.dailyTarget}
-
-                    </span>
-
-                </div>
-
-
-                <!-- PROGRESS BAR -->
-
-                <div class="h-3 overflow-hidden rounded-full bg-gray-700">
-
-
-                    <div
-                        class="h-full rounded-full
-                               bg-yellow-400
-                               transition-all duration-500"
-                        style="width: ${percentage}%">
-
-                    </div>
-
-
-                </div>
-
-
-                <p class="mt-2 text-right text-sm text-gray-400">
-
-                    ${percentage}% complete
-
-                </p>
-
-
-            </div>
-
-
-            <!-- COUNTER -->
-
-            <div class="mt-6 flex items-center
-                        justify-center gap-6">
-
-
-                <!-- DECREASE -->
-
-                <button
-                    onclick="decreaseHabit(${habit.id})"
-                    class="flex h-10 w-10 items-center
-                           justify-center rounded-full
-                           bg-gray-700 text-xl
-                           transition hover:bg-gray-600">
-
-                    <i class="fa-solid fa-minus"></i>
-
-                </button>
-
-
-                <!-- CURRENT COUNT -->
-
-                <span class="text-3xl font-bold text-yellow-400">
-
-                    ${todayProgress}
-
-                </span>
-
-
-                <!-- INCREASE -->
-
-                <button
-                    onclick="increaseHabit(${habit.id})"
-                    class="flex h-10 w-10 items-center
-                           justify-center rounded-full
-                           bg-yellow-400 text-xl
-                           text-black transition
-                           hover:scale-110
-                           hover:bg-yellow-300">
-
-                    <i class="fa-solid fa-plus"></i>
-
-                </button>
-
-
-            </div>
-
-
-            <!-- TARGET MESSAGE -->
-
-            <p class="mt-5 text-center text-sm text-gray-400">
-
-                ${
-                    percentage >= 100
-                    ? "Daily target completed! ⚡"
-                    : `${habit.dailyTarget - todayProgress} more to go!`
-                }
-
-            </p>
-
-        `;
-
-
-        habitContainer.appendChild(card);
-
-    });
-
-
-    updateStats();
-
-}
-
-
-// ===============================
-// COMPLETE HABIT
-// ===============================
-
-// function toggleHabit(id) {
-
-
-//     const habit = habits.find(function (habit) {
-
-//         return habit.id === id;
-
-//     });
-
-
-//     const today = getToday();
-
-
-//     if (habit.completedDates.includes(today)) {
-
-
-//         habit.completedDates = habit.completedDates.filter(function (date) {
-
-//             return date !== today;
-
-//         });
-
-
-//         habit.streak = Math.max(0, habit.streak - 1);
-
-
-//     } else {
-
-
-//         habit.completedDates.push(today);
-
-//         habit.streak++;
-
-
-//         if (habit.streak > habit.bestStreak) {
-
-//             habit.bestStreak = habit.streak;
-
-//         }
-
-//     }
-
-
-//     saveHabits();
-
-//     displayHabits();
-
-// }
-
-// ===============================
-// INCREASE HABIT
-// ===============================
-
-function increaseHabit(id) {
-
-
-    const habit = habits.find(function (habit) {
-
-        return habit.id === id;
-
-    });
-
-
-    const today = getToday();
-
-
-    if (!habit.dailyProgress[today]) {
-
-        habit.dailyProgress[today] = 0;
-
-    }
-
-
-    habit.dailyProgress[today]++;
-
-
-    updateStreak(habit);
-
-
-    saveHabits();
-
-    displayHabits();
-
-}
-
-// ===============================
-// DECREASE HABIT
-// ===============================
-
-function decreaseHabit(id) {
-
-
-    const habit = habits.find(function (habit) {
-
-        return habit.id === id;
-
-    });
-
-
-    const today = getToday();
-
-
-    if (!habit.dailyProgress[today]) {
-
-        habit.dailyProgress[today] = 0;
-
-    }
-
-
-    if (habit.dailyProgress[today] > 0) {
-
-        habit.dailyProgress[today]--;
-
-    }
-
-
-    updateStreak(habit);
-
-
-    saveHabits();
-
-    displayHabits();
-
-}
-
-
-// ===============================
-// DELETE HABIT
-// ===============================
-
-function deleteHabit(id) {
-
-
-    habits = habits.filter(function (habit) {
-
-        return habit.id !== id;
-
-    });
-
-
-    saveHabits();
-
-    displayHabits();
-
-}
-
-
-// ===============================
-// GET TODAY'S DATE
-// ===============================
-
-function getToday() {
-
-    return new Date().toISOString().split("T")[0];
-
-}
-
-
-// ===============================
-// UPDATE STATISTICS
-// ===============================
-
-function updateStats() {
-
-
-    const today = getToday();
-
-
-    const completedToday = habits.filter(function (habit) {
-
-        const progress =
-            habit.dailyProgress[today] || 0;
-
-
-        return progress >= habit.dailyTarget;
-
-    }).length;
-
-
-    const bestStreak = habits.reduce(function (highest, habit) {
-
-        return Math.max(highest, habit.bestStreak);
-
-    }, 0);
-
-
-    document.getElementById("totalHabits").textContent = habits.length;
-
-
-    document.getElementById("completedToday").textContent = completedToday;
-
-
-    document.getElementById("bestStreak").textContent = bestStreak;
-
-}
-
-// ===============================
-// UPDATE STREAK
-// ===============================
-
-function updateStreak(habit) {
-
-
-    const today = getToday();
-
-
-    const todayProgress =
-        habit.dailyProgress[today] || 0;
-
-
-    // If today's target is completed
-
-    if (todayProgress >= habit.dailyTarget) {
-
-
-        // Avoid increasing streak repeatedly
-
-        if (habit.lastCompletedDate !== today) {
-
-            habit.streak++;
-
-            habit.lastCompletedDate = today;
-
-
-            if (habit.streak > habit.bestStreak) {
-
-                habit.bestStreak = habit.streak;
-
-            }
-
-        }
-
-    }
-
-}
-
-
-// ===============================
-// SAVE DATA
-// ===============================
-
-function saveHabits() {
-
-    localStorage.setItem("habits", JSON.stringify(habits));
-
-}
-
-
-// ===============================
-// INITIAL DISPLAY
-// ===============================
-
-displayHabits();
+elements.enableNotifications.addEventListener("click", async () => {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "granted") {
+    showToast("Gentle reminders are on.");
+    return;
+  }
+  const permission = await Notification.requestPermission();
+  updateNotificationStatus();
+  showToast(permission === "granted" ? "Reminders are on. You’re all set." : "No worries. You can still use PikaHabit here.");
+});
+
+elements.date.min = localDateKey();
+elements.date.value = localDateKey();
+updateScheduleFields();
+updateNotificationStatus();
+render();
+window.setInterval(checkReminders, 15_000);
+document.addEventListener("visibilitychange", checkReminders);

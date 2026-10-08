@@ -1,499 +1,71 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#101114" />
+    <meta name="description" content="A gentle reminder for the little things you keep forgetting." />
+    <title>PikaHabit — remember the little things</title>
+    <link rel="icon" href="pk.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="topbar">
+      <a class="brand" href="#home" aria-label="PikaHabit home"><span class="brand-mark" aria-hidden="true">✦</span> PikaHabit</a>
+      <a class="notification-toggle" href="#reminders">My reminders <span id="reminderBadge">0</span></a>
+    </header>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PikaHabit</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.0/css/all.min.css">
-    <link rel="icon" href="pk.png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Nunito:wght@200..1000&display=swap" rel="stylesheet">
-
-</head>
-
-
-<body class="bg-[#111111] text-white font-[Nunito]">
-
-
-    <!-- ================= LOADING SCREEN ================= -->
-
-    <div id="loader"
-        class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-yellow-400 transition-opacity duration-700">
-
-        <img src="pokee.png"
-            alt="Pokeball"
-            class="h-32 w-32 animate-bounce">
-
-        <div class="mt-8 h-12 w-12 animate-spin rounded-full border-4 border-black border-t-white">
+    <main id="main">
+      <section class="hero page-shell" id="home">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="status-dot"></span> A LITTLE REMINDER BUDDY</p>
+          <h1>Remember the little things.<br /><span>Gently.</span></h1>
+          <p class="hero-description">Study a little. Drink some water. Do the thing you meant to do. PikaHabit gives you a friendly nudge, without turning your day into a project.</p>
+          <a class="button button-primary" href="#add-reminder">Add a reminder <span aria-hidden="true">→</span></a>
+          <p class="hero-note"><span aria-hidden="true">✦</span> One small nudge at a time.</p>
         </div>
-
-        <p class="mt-4 font-bold text-black">
-            Loading your habits...
-        </p>
-
-    </div>
-
-
-    <!-- ================= NAVBAR ================= -->
-
-    <nav class="flex h-20 items-center justify-between border-b border-gray-800 px-6 md:px-20">
-
-        <h1 class="text-3xl font-bold text-yellow-400 font-[Fredoka]">
-            PikaHabit <i class="fa-solid fa-bolt"></i>
-        </h1>
-
-
-        <div class="hidden gap-8 font-semibold md:flex">
-
-            <a href="#home"
-                class="group relative transition duration-300 hover:text-yellow-400">
-
-                Home
-
-                <span
-                    class="absolute bottom-[-8px] left-0 h-1 w-0 bg-yellow-400 transition-all duration-500 group-hover:w-full">
-                </span>
-
-            </a>
-
-            <a href="#progress"
-                class="group relative transition duration-300 hover:text-red-400">
-
-                Progress
-
-                <span
-                    class="absolute bottom-[-8px] left-0 h-1 w-0 bg-red-400 transition-all duration-500 group-hover:w-full">
-                </span>
-
-            </a>
-
-            <a href="#habits"
-                class="group relative transition duration-300 hover:text-green-400">
-
-                Habits
-
-                <span
-                    class="absolute bottom-[-8px] left-0 h-1 w-0 bg-green-400 transition-all duration-500 group-hover:w-full">
-                </span>
-
-            </a>
-
-
-
+        <div class="hero-art" aria-label="Pikachu cheering you on">
+          <div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div>
+          <div class="hero-spark spark-one" aria-hidden="true">✦</div><div class="hero-spark spark-two" aria-hidden="true">✧</div>
+          <img src="waving-pikachu.gif" alt="" class="hero-mascot" />
+          <div class="mascot-caption"><span class="caption-icon" aria-hidden="true">⚡</span><span><strong>You’ve got this!</strong><small>One nudge at a time</small></span></div>
         </div>
+      </section>
 
-    </nav>
+      <section class="page-shell reminder-section" id="reminders" aria-labelledby="reminders-title">
+        <div class="section-heading"><div><p class="eyebrow">KEEP IT SIMPLE</p><h2 id="reminders-title">Your reminders</h2></div><p id="reminderCount" class="reminder-count">Nothing to remember yet</p></div>
+        <div class="reminder-layout">
+          <section class="form-card" id="add-reminder" aria-labelledby="form-title">
+            <p class="eyebrow">JUST ONE QUICK THING</p><h3 id="form-title">What do you want to remember?</h3>
+            <form id="reminderForm">
+              <label for="reminderTitle">Reminder</label>
+              <input id="reminderTitle" name="reminderTitle" type="text" maxlength="72" placeholder="e.g. Review biology notes" required />
+              <label for="reminderRepeat">How often?</label>
+              <select id="reminderRepeat" name="reminderRepeat"><option value="once">Just once</option><option value="2m">Every 2 minutes (try it out)</option><option value="30m">Every 30 minutes</option><option value="1h">Every hour</option><option value="daily">Every day</option></select>
+              <div class="schedule-fields" id="scheduleFields">
+                <label id="dateLabel" for="reminderDate">Date</label><input id="reminderDate" name="reminderDate" type="date" required />
+                <label class="time-label" for="reminderTime">Time</label><input class="time-input" id="reminderTime" name="reminderTime" type="time" required />
+              </div>
+              <p class="form-hint" id="scheduleHint">For example: study biology once today at 7:00 pm.</p>
+              <button class="button button-primary submit-button" type="submit">Add reminder <span aria-hidden="true">＋</span></button>
+            </form>
+          </section>
 
-
-    <!-- ================= HERO SECTION ================= -->
-
-    <section id="home"
-        class="flex min-h-[500px] flex-col items-center justify-center px-6 pt-20 text-center">
-
-
-        <div class="rounded-full bg-yellow-400 px-4 py-1 text-black">
-
-            <h2 class="font-bold">
-                Pikachu says...
-            </h2>
-
+          <section class="list-card" aria-label="Saved reminders">
+            <div id="reminderList" class="reminder-list" aria-live="polite"></div>
+            <div id="emptyState" class="empty-state"><span class="empty-spark" aria-hidden="true">✦</span><h3>You’re all clear.</h3><p>Add a reminder and let PikaHabit hold onto it for you.</p></div>
+          </section>
         </div>
-
-
-        <div class="mt-6 flex flex-col items-center gap-5 md:flex-row">
-
-            <img src="waving-pikachu.gif"
-                alt="Waving Pikachu"
-                class="h-32 animate-bounce">
-
-
-            <h1 class="text-5xl font-bold text-yellow-400 md:text-8xl font-[Fredoka]">
-
-                WELCOME!
-
-            </h1>
-
-        </div>
-
-
-        <p class="mt-6 max-w-xl text-gray-400">
-
-            Build powerful habits, maintain your streaks,
-            and become the very best version of yourself!
-
-        </p>
-
-        <a href="#habits"
-            class="group relative mt-8 inline-block overflow-hidden rounded-full 
-                bg-yellow-400 px-8 py-3 font-bold text-black 
-                transition-all duration-300 
-                hover:scale-110 hover:shadow-[0_0_25px_#facc15]">
-
-            <!-- Shimmer effect -->
-            <span class="absolute inset-0 -translate-x-full 
-                        bg-white/40 skew-x-12
-                        transition-transform duration-700
-                        group-hover:translate-x-full">
-            </span>
-
-            <!-- Button text -->
-            <span class="relative z-10">
-                Start Tracking <i class="fa-solid fa-bolt"></i>
-            </span>
-
-        </a>
-
-    </section>
-
-
-    <!-- ================= DASHBOARD ================= -->
-
-    <section id="progress"
-        class="mx-auto max-w-6xl px-6 py-16">
-
-
-        <h2 class="mb-8 text-3xl font-bold text-yellow-400">
-
-            Your Progress <i class="fa-solid fa-bolt"></i>
-
-        </h2>
-
-
-        <div class="grid gap-6 md:grid-cols-3">
-
-
-            <!-- TOTAL HABITS -->
-
-            <div class="rounded-2xl overflow-hidden border border-gray-800 bg-[#1c1c1c] p-6 group relative">
-
-                <div class="flex items-center justify-between">
-
-                    <div>
-
-                        <p class="text-gray-400">
-                            Total Habits
-                        </p>
-
-                        <h3 id="totalHabits"
-                            class="mt-2 text-4xl font-bold text-yellow-400">
-
-                            0
-
-                        </h3>
-
-                    </div>
-
-
-                    <i class="fa-solid fa-list-check text-4xl text-yellow-400"></i>
-
-                    <!-- Animated underline -->
-                    <div class="absolute bottom-0 left-0 h-1 w-0 bg-yellow-400 
-                                transition-all duration-500 group-hover:w-full">
-                    </div>
-                </div>
-                    
-
-            </div>
-
-
-            <!-- COMPLETED TODAY -->
-
-            <div class="rounded-2xl border border-gray-800 bg-[#1c1c1c] p-6 group overflow-hidden relative">
-
-                <div class="flex items-center justify-between">
-
-                    <div>
-
-                        <p class="text-gray-500">
-                            Completed Today
-                        </p>
-
-                        <h3 id="completedToday"
-                            class="mt-2 text-4xl font-bold text-green-500">
-
-                            0
-
-                        </h3>
-
-                    </div>
-
-
-                    <i class="fa-solid fa-bolt text-4xl text-green-500"></i>
-
-                </div>
-
-                    <!-- Animated underline -->
-                <div class="absolute bottom-0 left-0 h-1 w-0 bg-green-500 
-                                transition-all duration-500 group-hover:w-full">
-                </div>
-
-            </div>
-
-
-            <!-- BEST STREAK -->
-
-            <div class="rounded-2xl border border-gray-800 bg-[#1c1c1c] p-6 group relative overflow-hidden">
-
-                <div class="flex items-center justify-between">
-
-                    <div>
-
-                        <p class="text-gray-400">
-                            Best Streak
-                        </p>
-
-                        <h3 id="bestStreak"
-                            class="mt-2 text-4xl font-bold text-red-400">
-
-                            0
-
-                        </h3>
-
-                    </div>
-
-
-                    <i class="fa-solid fa-fire text-4xl text-red-400"></i>
-
-                </div>
-
-                <!-- Animated underline -->
-                <div class="absolute bottom-0 left-0 h-1 w-0 bg-red-400 
-                                transition-all duration-500 group-hover:w-full">
-                </div>
-
-            </div>
-
-
-        </div>
-
-    </section>
-
-
-    <!-- ================= HABITS SECTION ================= -->
-
-    <section id="habits"
-        class="mx-auto max-w-6xl px-6 pb-20">
-
-
-        <div class="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
-
-
-            <h2 class="text-3xl font-bold text-yellow-400">
-
-                My Habits <i class="fa-solid fa-bolt"></i>
-
-            </h2>
-
-
-        <button id="openModal"
-            class="group relative inline-block overflow-hidden rounded-full
-                bg-yellow-400 px-6 py-3 font-bold text-black
-                transition-all duration-300
-                hover:scale-110
-                hover:shadow-[0_0_25px_#facc15]">
-
-            <!-- Shimmer effect -->
-            <span class="absolute inset-0 -translate-x-full
-                        skew-x-12 bg-white/40
-                        transition-transform duration-700
-                        group-hover:translate-x-full">
-            </span>
-
-            <!-- Button content -->
-            <span class="relative z-10 flex items-center gap-2">
-
-                <i class="fa-solid fa-plus"></i>
-
-                Add Habit
-
-            </span>
-
-        </button>
-
-
-        </div>
-
-
-        <!-- HABIT CARDS -->
-
-        <div id="habitContainer"
-            class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-
-        </div>
-
-
-        <!-- EMPTY STATE -->
-
-        <div id="emptyState"
-            class="rounded-2xl border border-dashed border-gray-700 py-16 text-center">
-
-            <img src="waving-pikachu.gif"
-                alt="Pikachu"
-                class="mx-auto h-28">
-
-            <h3 class="mt-4 text-xl font-bold">
-
-                No habits yet!
-
-            </h3>
-
-            <p class="mt-2 text-gray-400">
-
-                Add your first habit and start your journey.
-
-            </p>
-
-        </div>
-
-
-    </section>
-
-
-    <!-- ================= ADD HABIT MODAL ================= -->
-
-    <div id="modal"
-        class="fixed inset-0 z-40 hidden items-center justify-center bg-black/80 px-6">
-
-
-        <div class="w-full max-w-md rounded-2xl bg-[#1c1c1c] p-8">
-
-
-            <div class="mb-6 flex items-center justify-between">
-
-                <h2 class="text-2xl font-bold text-yellow-400">
-
-                    Add New Habit <i class="fa-solid fa-bolt"></i>
-
-                </h2>
-
-
-                <button id="closeModal"
-                    class="text-2xl text-gray-400 hover:text-white">
-
-                    &times;
-
-                </button>
-
-            </div>
-
-<form id="habitForm">
-
-    <label class="mb-2 block text-gray-300">
-        Habit Name
-    </label>
-
-    <input
-        id="habitName"
-        type="text"
-        placeholder="Example: Drink Water"
-        required
-        class="mb-5 w-full rounded-lg border border-gray-700
-               bg-[#111111] p-3 outline-none
-               focus:border-yellow-400"
-    >
-
-
-    <label class="mb-2 block text-gray-300">
-        Choose an Icon
-    </label>
-
-    <select
-        id="habitIcon"
-        class="mb-6 w-full rounded-lg border border-gray-700
-               bg-[#111111] p-3 outline-none
-               focus:border-yellow-400"
-    >
-
-        <option value="📚">📚 Reading</option>
-        <option value="💧">💧 Drink Water</option>
-        <option value="🏃">🏃 Exercise</option>
-        <option value="🧘">🧘 Meditation</option>
-        <option value="💻">💻 Coding</option>
-        <option value="😴">😴 Sleep</option>
-        <option value="🎯">🎯 Goal</option>
-        <option value="other">✨ Other</option>
-
-    </select>
-
-
-    <!-- CUSTOM HABIT -->
-
-    <div id="customHabitContainer" class="mb-6 hidden">
-
-        <label class="mb-2 block text-gray-300">
-            Create Your Own Habit
-        </label>
-
-        <input
-            id="customHabit"
-            type="text"
-            placeholder="Example: Practice Guitar"
-            class="mb-4 w-full rounded-lg border border-gray-700
-                   bg-[#111111] p-3 outline-none
-                   focus:border-yellow-400"
-        >
-
-        <label class="mb-2 block text-gray-300">
-            Choose an Emoji
-        </label>
-
-        <input
-            id="customIcon"
-            type="text"
-            placeholder="Example: 🎸"
-            maxlength="4"
-            class="mb-6 w-full rounded-lg border border-gray-700
-                   bg-[#111111] p-3 outline-none
-                   focus:border-yellow-400"
-        >
-
-    </div>
-
-
-    <!-- DAILY TARGET -->
-
-    <label class="mb-2 block text-gray-300">
-        How many times per day?
-    </label>
-
-    <input
-        id="dailyTarget"
-        type="number"
-        min="1"
-        value="1"
-        required
-        class="mb-6 w-full rounded-lg border border-gray-700
-               bg-[#111111] p-3 outline-none
-               focus:border-yellow-400"
-    >
-
-
-    <button
-        type="submit"
-        class="w-full rounded-lg bg-yellow-400 py-3
-               font-bold text-black transition
-               hover:bg-yellow-300"
-    >
-
-        Create Habit
-        <i class="fa-solid fa-bolt"></i>
-
-    </button>
-
-</form>
-
-
-        </div>
-
-    </div>
-
-
-    <script src="script.js"></script>
-
-</body>
-
+        <div class="notification-card"><div class="notification-icon" aria-hidden="true">◷</div><div class="notification-copy"><h3>Want a gentle nudge?</h3><p>Turn on browser notifications. PikaHabit can remind you while this page is open.</p></div><button class="button button-secondary" id="enableNotifications" type="button">Enable reminders <span aria-hidden="true">↗</span></button><p id="notificationStatus" class="notification-status" role="status">You’ll be asked before notifications are enabled.</p></div>
+      </section>
+    </main>
+
+    <footer class="footer page-shell"><a class="brand footer-brand" href="#home"><span class="brand-mark" aria-hidden="true">✦</span> PikaHabit</a><p>Small things matter. Be kind to yourself. <span aria-hidden="true">⚡</span></p></footer>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </body>
 </html>
